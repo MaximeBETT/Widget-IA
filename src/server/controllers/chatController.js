@@ -5,17 +5,20 @@ const OpenAI = require('openai');
 
 const DATA_DIR = path.join(__dirname, '../../data');
 
-// Verify API key is loaded
-if (!process.env.OPENAI_API_KEY) {
-  console.warn('⚠️  WARNING: OPENAI_API_KEY not found in environment variables!');
+// Log the API key being used (first/last chars only for security)
+const apiKey = process.env.OPENAI_API_KEY;
+if (apiKey) {
+  console.log(`✅ OPENAI_API_KEY loaded: ${apiKey.substring(0, 10)}...${apiKey.substring(apiKey.length - 5)}`);
+} else {
+  console.error('❌ OPENAI_API_KEY is MISSING!');
 }
 
-// Initialize OpenAI client
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
-});
-
-console.log('✅ OpenAI client initialized');
+// Function to get a fresh OpenAI client
+const getOpenAIClient = () => {
+  return new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY
+  });
+};
 
 // Ensure data directory exists
 if (!fs.existsSync(DATA_DIR)) {
@@ -158,48 +161,40 @@ const chatController = {
 
 // Helper to generate AI response
 const generateAIResponse = async (question, corrections) => {
-  try {
-    // Check if there's a correction for similar question
-    const relevantCorrection = corrections.find(c =>
-      c.originalQuestion && c.originalQuestion.toLowerCase().includes(question.substring(0, 20).toLowerCase())
-    );
+  // Check if there's a correction for similar question
+  const relevantCorrection = corrections.find(c =>
+    c.originalQuestion && c.originalQuestion.toLowerCase().includes(question.substring(0, 20).toLowerCase())
+  );
 
-    if (relevantCorrection && relevantCorrection.correctedAnswer) {
-      console.log('✅ Using cached correction');
-      return relevantCorrection.correctedAnswer;
-    }
-
-    console.log('🔄 Calling OpenAI API...');
-    
-    // Call OpenAI API
-    const message = await openai.chat.completions.create({
-      model: 'gpt-3.5-turbo',
-      messages: [
-        {
-          role: 'system',
-          content: 'Tu es un assistant IA utile et concis. Réponds en français.'
-        },
-        {
-          role: 'user',
-          content: question
-        }
-      ],
-      temperature: 0.7,
-      max_tokens: 300
-    });
-
-    const response = message.choices[0].message.content;
-    console.log('✅ OpenAI response received:', response.substring(0, 50) + '...');
-    return response;
-  } catch (error) {
-    console.error('❌ OpenAI API Error:', {
-      message: error.message,
-      code: error.code,
-      status: error.status,
-      type: error.type
-    });
-    throw error; // Re-throw so the caller can handle it
+  if (relevantCorrection && relevantCorrection.correctedAnswer) {
+    console.log('✅ Using cached correction');
+    return relevantCorrection.correctedAnswer;
   }
+
+  console.log('🔄 Calling OpenAI API with key:', process.env.OPENAI_API_KEY ? process.env.OPENAI_API_KEY.substring(0, 10) + '...' : 'MISSING');
+  
+  // Create a fresh client for each request
+  const client = getOpenAIClient();
+  
+  const completion = await client.chat.completions.create({
+    model: 'gpt-3.5-turbo',
+    messages: [
+      {
+        role: 'system',
+        content: 'Tu es un assistant IA utile et concis. Réponds en français.'
+      },
+      {
+        role: 'user',
+        content: question
+      }
+    ],
+    temperature: 0.7,
+    max_tokens: 300
+  });
+
+  const response = completion.choices[0].message.content;
+  console.log('✅ OpenAI response received:', response.substring(0, 50) + '...');
+  return response;
 };
 
 module.exports = chatController;

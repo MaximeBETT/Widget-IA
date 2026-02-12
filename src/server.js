@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
-require('dotenv').config();
+require('dotenv').config({ override: true });
 
 const chatRoutes = require('./server/routes/chat');
 const adminRoutes = require('./server/routes/admin');
