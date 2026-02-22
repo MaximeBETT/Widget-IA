@@ -16,6 +16,7 @@ const allowedOrigins = [
   'https://www.webetton.fr',
   'http://webetton.fr',
   'http://www.webetton.fr',
+  'https://widget-ia-8d1d.onrender.com',
   'http://localhost:3000',
   'http://127.0.0.1:3000'
 ];
