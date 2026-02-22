@@ -10,9 +10,29 @@ const auth = require('./server/middleware/auth');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// CORS - autorise ton site + le domaine Render
+const allowedOrigins = [
+  'https://webetton.fr',
+  'https://www.webetton.fr',
+  'http://webetton.fr',
+  'http://www.webetton.fr',
+  'http://localhost:3000',
+  'http://127.0.0.1:3000'
+];
+
 // Middleware
 app.use(bodyParser.json());
-app.use(cors());
+app.use(cors({
+  origin: function(origin, callback) {
+    // Autoriser les requêtes sans origin (Postman, curl, admin panel)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin) || process.env.NODE_ENV !== 'production') {
+      return callback(null, true);
+    }
+    callback(new Error('Bloqué par CORS'));
+  },
+  credentials: true
+}));
 
 // Serve static files (widget + admin interface)
 app.use(express.static('public'));
